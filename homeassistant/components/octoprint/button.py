@@ -34,6 +34,7 @@ async def async_setup_entry(
             OctoprintShutdownSystemButton(coordinator, device_id, client),
             OctoprintRebootSystemButton(coordinator, device_id, client),
             OctoprintRestartOctoprintButton(coordinator, device_id, client),
+            OctoprintConnectButton(coordinator, device_id, client),
         ]
     )
 
@@ -212,6 +213,33 @@ class OctoprintRestartOctoprintButton(OctoprintSystemButton):
         """Handle the button press."""
         await self.client.restart()
 
+class OctoprintConnectButton(OctoprintSystemButton):
+    """Connect to printer."""
+
+    def __init__(
+        self,
+        coordinator: OctoprintDataUpdateCoordinator,
+        device_id: str,
+        client: OctoprintClient,
+    ) -> None:
+        """Initialize a new OctoPrint button."""
+        super().__init__(coordinator, "Connect Printer", device_id, client)
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return (
+            self.coordinator.last_update_success
+            and self.coordinator.data["printer"] is None
+        )
+
+    async def async_press(self) -> None:
+        """Handle the button press."""
+        printer: OctoprintPrinterInfo = self.coordinator.data["printer"]
+
+        if printer is None:
+            await self.client.connect()
+            await self.coordinator.async_refresh()
 
 class InvalidPrinterState(HomeAssistantError):
     """Service attempted in invalid state."""
